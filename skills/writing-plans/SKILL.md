@@ -7,7 +7,7 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write implementation plans for an engineer who has not seen this codebase or this spec. Assume they write idiomatic code in the project's language once they know the exact interface and the exact test, and that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is what you decided: which files, which names and signatures, which values from the spec, which tests prove each task. Document those. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD sized to risk. Frequent commits.
+Write implementation plans for an engineer who has not seen this codebase or this spec. Assume they write idiomatic code in the project's language once they know the exact interface and the exact test, and that they will make a reasonable choice wherever the plan leaves one open. What they cannot know is what you decided: which files, which names and signatures, which values from the spec, which tests prove each task. Document those. Give them the whole plan as bite-sized tasks, written as decisions rather than as code — see **Detail Level** below. DRY. YAGNI. TDD sized to risk.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -15,6 +15,40 @@ Write implementation plans for an engineer who has not seen this codebase or thi
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
+
+## Detail Level
+
+**Default: decisions, not code.** A plan names the file, the function or
+type, and the technical aspect — the contract, the data that flows through
+it, the values the spec pins, the failure modes it must handle — and stops
+there. That is the bar, and it is a real bar: an engineer who has never
+seen this codebase writes the actual code from your plan without
+re-deriving the design, and without guessing a name, a signature, or a
+required value.
+
+The implementer writes the implementation. Do not write it for them.
+
+Naming enough to write code is not an invitation to include the code.
+"Specific" means every decision is pinned, not that every line is written.
+
+**Technical plan — only when the user asks for one.** When the request is
+explicitly for a technical plan ("technical plan", "code level", "with
+code", "include the code"), add the implementation detail the default
+withholds: exact signatures with parameter and return types, the body of
+any algorithm the signature and tests do not determine, and the exact copy,
+literals, and schema the spec fixes. Technical is additive — keep every
+decision the default requires, then add the code.
+
+Never infer technical from the subject matter. A request for a plan, a
+spec, a feature, or a refactor is a default-level plan. Do not ask which
+level is wanted just because a plan feels thin: thin is the default, not a
+defect. Record the level in the plan header so the reader and the executor
+know which one they are holding.
+
+**Test steps carry code in both modes.** A test's name and assertions are
+the contract, so they go in the plan as a short snippet. It is the
+shortest block in the document and the one that earns its place.
+Implementation bodies are what the default withholds.
 
 ## Scope Check
 
@@ -59,12 +93,15 @@ it gets its own review gate. When unsure, mark it high.
 - "Run it to make sure it fails" - step
 - "Implement the minimal code to make the test pass" - step
 - "Run the tests and make sure they pass" - step
-- "Commit" - step
 
-**Standard tasks — three steps:** implement the change together with its
-tests (named, with their assertions), run the task's tests (command and
-expected result), commit. The implementer still writes a behavioral test
+**Standard tasks — two steps:** implement the change together with its
+tests (named, with their assertions), and run the task's tests (command and
+expected result). The implementer still writes a behavioral test
 for each new behavior; it just is not a separate red step.
+
+A plan does not dictate commits. Leave the implementer to commit where
+they judge the work is coherent; a plan step that exists only to say
+"commit" carries no decision.
 
 ## Plan Document Header
 
@@ -83,6 +120,10 @@ for each new behavior; it just is not a separate red step.
 
 **Spec:** [path to the spec/design doc this plan implements — the plan
 argues from the spec, so the spec travels with it; executors read both]
+
+**Detail:** decisions, not code — the default; the implementer writes the
+implementation. Write "technical plan, requested by <who>" instead only
+when the user explicitly asked for one.
 
 ## Global Constraints
 
@@ -140,20 +181,15 @@ Expected: FAIL with "function not defined"
 - [ ] **Step 3: Implement `function(input: InputType) -> ResultType` in `exact/path/to/file.py`**
 
 One line on the approach when the signature and the test leave a choice
-(which library call, which data structure); a code block only for an
-algorithm they do not determine.
+(which library call, which data structure). **The signature, the file, and
+the values the spec pins are the whole step — the implementer writes the
+body.** A body appears only for an algorithm the signature and tests do
+not determine, for exact copy the spec fixes, or in a technical plan.
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
 ````
 
 ## What a Step Contains
@@ -163,15 +199,23 @@ from it. That is the whole requirement: unambiguous, not complete. Each kind
 of step carries what makes it unambiguous and nothing more:
 
 - **A test step:** the test's name and its assertions, as code, with the
-  spec's exact values in them.
+  spec's exact values in them. This is the one step that carries a code
+  block in a default plan.
 - **A code step:** the exact signature (name, parameters, return type), the
   file it lives in, and the specific values the spec pins. The implementer
-  writes the body. A body appears only for an algorithm the signature and
-  tests do not determine, or for exact copy the spec fixes.
+  writes the body. In a default plan a body appears only for an algorithm
+  the signature and tests do not determine, or for exact copy the spec
+  fixes; in a technical plan, add it throughout.
 - **A verification step:** the command to run and the output that means it
   passed.
 - **A reference to another task:** that task's Interfaces block says what
   to use; the plan does not repeat that task's code.
+
+Sufficiency, not completeness, is the test. A step names the file, the
+function or type, and enough technical detail — the contract, the data
+flow, the values, the edge cases — that the implementer writes real code
+without a second design pass. Stop there. Writing the code as well is not
+thoroughness; it is the implementer's work, done for them.
 
 A plan is the set of decisions the implementer cannot make alone. A plan
 longer than the code it describes has written the code instead. Lines that
@@ -192,6 +236,8 @@ After writing the complete plan, look at the spec with fresh eyes and check the 
 **4. Review Focus:** For each input class or failure mode the spec implies, is there a task whose tests exercise it? The five uncovered ones most likely to bite a person go in the Review Focus section, and each line there gets its test added to the owning task. An empty section means you checked and found none, not that you skipped the check.
 
 **5. Proportion:** Compare the plan's length to the spec's. A plan several times longer than the spec it implements is a transcript of the program, not a plan. If code blocks are most of the document, replace bodies with signatures, test names and assertions, and check that each step is still unambiguous.
+
+**6. Detail level:** Does the plan match the level its header claims? For a default plan, every implementation body the signature and tests already determine comes out, leaving test snippets and exact copy. For a technical plan, check the opposite — that the bodies and signatures the header promised are actually there. A default plan with implementation bodies in it is the failure this check exists for; do not leave a thin plan alone on the grounds that thin is the default, because a step that names no file or no function is a gap under either level.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 

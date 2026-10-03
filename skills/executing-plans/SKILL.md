@@ -80,14 +80,14 @@ digraph process {
         "task-done: run tests, ledger the result; mark todo complete" [shape=box];
     }
 
-    "Setup: worktree, workspace + ledger, read plan + spec, pre-flight scan" [shape=box];
+    "Setup: workspace + ledger, read plan + spec, pre-flight scan" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Final whole-branch review (fresh reviewer if you have one)" [shape=box];
     "Re-grade, then: Critical/Important → ONE fix pass, each fix RED→GREEN + green suite; Minor → ledger" [shape=box];
     "Final review clean: delete this plan's workspace" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Setup: worktree, workspace + ledger, read plan + spec, pre-flight scan" -> "task-start: brief + BASE; read the brief";
+    "Setup: workspace + ledger, read plan + spec, pre-flight scan" -> "task-start: brief + BASE; read the brief";
     "task-start: brief + BASE; read the brief" -> "Work the steps in order: TDD, run every verification, read every output";
     "Work the steps in order: TDD, run every verification, read every output" -> "Step output matches plan's Expected?";
     "Step output matches plan's Expected?" -> "Plan wrong? Rule and ledger. Code wrong? systematic-debugging" [label="no"];
@@ -107,8 +107,12 @@ digraph process {
 
 ## Setup
 
-Ensure the work happens in an isolated workspace: use
-superpowers:using-git-worktrees to create one or verify the existing one.
+Work where you are. The plan runs in the current directory, on the
+current branch, by default. Do not create, verify, or move into a worktree
+unless the human partner specifically asked for one — isolation is opt-in,
+not a precondition of executing a plan. When they do ask, use
+superpowers:using-git-worktrees.
+
 Never start implementation on a main/master branch without your human
 partner's explicit consent.
 
@@ -334,7 +338,7 @@ Use superpowers:finishing-a-development-branch.
 ```
 You: I'm using the executing-plans skill to implement this plan inline.
 
-[Setup: worktree verified]
+[Setup: workspace ready]
 [Read plan once: docs/superpowers/plans/feature-plan.md; spec read]
 [Resolve workspace: sdd-workspace docs/superpowers/plans/feature-plan.md — no ledger inside, fresh start]
 [Pre-flight scan: 2 shared-interface rows, 4 self-consistency rows, clean; written to ledger]

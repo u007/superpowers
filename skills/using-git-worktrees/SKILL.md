@@ -1,6 +1,6 @@
 ---
 name: using-git-worktrees
-description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback
+description: Use only when the human partner specifically asks for an isolated workspace, a worktree, or work that must not touch the current checkout - ensures an isolated workspace exists via native tools or git worktree fallback. Do NOT invoke proactively before executing implementation plans; plans run in the current directory by default.
 ---
 
 # Using Git Worktrees
@@ -90,41 +90,56 @@ git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/d
 #### Create the Worktree
 
 ```bash
-# Determine path based on chosen location
-path="$LOCATION/$BRANCH_NAME"
+# Determine path based on chosen location, and make it ABSOLUTE.
+# NOTE: do not name this variable `path` — in zsh `path` is an array bound to
+# $PATH, so `path=...` silently clobbers the command search path.
+WT="$(cd "$LOCATION" && pwd)/$BRANCH_NAME"
 
-git worktree add "$path" -b "$BRANCH_NAME"
-cd "$path"
+git worktree add "$WT" -b "$BRANCH_NAME"
 ```
+
+**CRITICAL — `cd "$WT"` does not persist.** In ocode every bash tool call is a
+separate process launched with `cwd = <session project root>`. A `cd` applies
+to that one invocation and is gone by the next, so after this step you are
+**still in the main checkout** unless a native tool moved the session (Step1a).
+Everything below therefore uses `cd "$WT" && ...` on each command, and every
+path you pass to read/write/edit/bash is resolved against the project root, not
+the worktree.
+
+If you have no native worktree tool (Step 1b), you are choosing the fallback
+*because* the harness cannot track the move — so assume nothing after this
+point knows where you are, and spell out `"$WT"` in every command.
 
 **Sandbox fallback:** If `git worktree add` fails with a permission error (sandbox denial), tell the user the sandbox blocked worktree creation and you're working in the current directory instead. Then run setup and baseline tests in place.
 
 ## Step 2: Project Setup
 
-Auto-detect and run appropriate setup:
+Auto-detect and run appropriate setup **inside the worktree**. Detect against
+`"$WT"`, not the project root — otherwise you detect the main checkout's
+manifests and install into the wrong tree:
 
 ```bash
 # Node.js
-if [ -f package.json ]; then npm install; fi
+if [ -f "$WT/package.json" ]; then cd "$WT" && npm install; fi
 
 # Rust
-if [ -f Cargo.toml ]; then cargo build; fi
+if [ -f "$WT/Cargo.toml" ]; then cd "$WT" && cargo build; fi
 
 # Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
+if [ -f "$WT/requirements.txt" ]; then cd "$WT" && pip install -r requirements.txt; fi
+if [ -f "$WT/pyproject.toml" ]; then cd "$WT" && poetry install; fi
 
 # Go
-if [ -f go.mod ]; then go mod download; fi
+if [ -f "$WT/go.mod" ]; then cd "$WT" && go mod download; fi
 ```
 
 ## Step 3: Verify Clean Baseline
 
-Run tests to ensure workspace starts clean:
+Run tests **inside the worktree** to ensure the workspace starts clean:
 
 ```bash
-# Use project-appropriate command
-npm test / cargo test / pytest / go test ./...
+# Use project-appropriate command, prefixed with cd "$WT"
+cd "$WT" && npm test / cargo test / pytest / go test ./...
 ```
 
 **If tests fail:** Report failures, ask whether to proceed or investigate.
@@ -147,6 +162,7 @@ Ready to implement <feature-name>
 | In a submodule | Treat as normal repo (Step 0 guard) |
 | Native worktree tool available | Use it (Step 1a) |
 | No native tool | Git worktree fallback (Step 1b) |
+| Working in a fallback worktree | Prefix EVERY command with `cd "$WT" &&` — `cd` never persists, and relative paths resolve from the project root |
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
