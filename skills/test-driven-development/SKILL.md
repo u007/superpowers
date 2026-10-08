@@ -15,8 +15,9 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 ## When to Use
 
-Every behavior change gets tests. How strictly they come first depends on
-the change's class (superpowers:using-superpowers, "Right-Size the
+Every change that can break gets a test that names its break (see
+writing-good-tests.md). Tests are for catching bugs, never for coverage
+numbers. How strictly they come first depends on the change's class (superpowers:using-superpowers, "Right-Size the
 Process"):
 
 **High-risk — full red-green, the Iron Law applies:**
@@ -52,6 +53,24 @@ tests. What still holds:
   full red-first cycle and catches the same useless test.
 - Anything you discover mid-change that is high-risk (an edge case, a
   bug) switches that part to the red-green cycle below.
+
+**No test is a valid Standard outcome** for pure wiring, UI layout or
+forwarding with no logic: if you cannot name a production change that a
+test would catch, writing one only inflates coverage. Say so in one line
+to your human partner and run the existing tests instead.
+
+## Test Budget (keep the suite lean)
+
+- Extend an existing table-driven test with a new row before adding a new
+  test function.
+- Delete or merge tests your change made redundant (same behavior asserted
+  twice, copy-paste variants differing only in data).
+- Never prune on line coverage alone: same lines run is not same behavior
+  asserted. **Always keep** regression guards for a named bug, API
+  contracts, invariants, race/concurrency tests, and per-fixture data
+  tests; coverage cannot see these.
+- Suite bloated or slow? Use `test-suite-cleanup` if the project has it
+  (metrics first, review each drop candidate, verify or restore).
 
 ## The Iron Law (high-risk code)
 
@@ -328,7 +347,9 @@ Extract validation for multiple fields if needed.
 
 Before marking work complete:
 
-- [ ] Every new function/method has a test
+- [ ] Every new behavior that can break has a test naming its break;
+      trivial wiring/getters/constants do not need one
+- [ ] No redundant tests left behind (Test Budget)
 - [ ] High-risk code: watched each test fail before implementing.
       Standard change: each unsure test was seen to fail once (break-check)
 - [ ] Each test failed for expected reason (feature missing, not typo)
@@ -361,6 +382,7 @@ Never fix bugs without a test.
 ```
 High-risk production code → test exists and failed first
 Standard change → behavioral test exists and can fail
+Wiring with no nameable break → no new test, existing tests run
 Otherwise → not done
 ```
 
